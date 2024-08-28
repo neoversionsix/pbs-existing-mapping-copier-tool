@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBS Copy Mapping Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #results, #loading, #error {
+            margin-top: 20px;
+        }
+        #loading, #error {
+            display: none;
+        }
+        #error {
+            color: red;
+        }
+        #log-container {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>PBS</h1>
+    <form id="upload-form">
+        <div class="form-group">
+            <h3>New Items</h3>
+            <p>Load New Items</p>
+            <label for="file_a">New</label>
+            <input type="file" id="file_a" name="file_a" accept=".xlsx" required>
+        </div>
+        <div class="form-group">
+            <h3>Existing Mappings</h3>
+            <p>These are Existing Mappings Extracted from the Database</p>
+            <label for="file_b" class="visually-hidden">Updated</label>
+            <input type="file" id="file_b" name="file_b" accept=".xlsx" required>
+        </div>
+        <div class="form-group">
+            <h3>Matching Column</h3>
+            <p>Enter the name of the column to use when comparing rows (must be same name in both tables).</p>
+            <label for="key_column">Key Column</label>
+            <input type="text" id="key_column" name="key_column" value="PBS_DRUG_CONCATENATED" required>
+        </div>
+        <button type="submit">Process Files</button>
+    </form>
+    <div id="loading">Processing... This may take a while for large files.</div>
+    <div id="error"></div>
+    <div id="results" style="display: none;">
+        <h2>Results:</h2>
+        <p>New rows in Updated Table: <span id="new-rows-count"></span></p>
+        <p>Rows in Current Table that are not in the Updated Table: <span id="non-existing-rows-count"></span></p>
+        <button id="download-new-rows" disabled>Download New Rows</button>
+        <button id="download-non-existing-rows" disabled>Download Rows To Deactivate</button>
+    </div>
+    <div id="log-container">
+        <h3>Console Log:</h3>
+        <pre id="log-content"></pre>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
