@@ -7,7 +7,7 @@ import os
 import sys
 import traceback
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.')
 
 logs = []
 
