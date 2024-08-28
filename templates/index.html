@@ -13,7 +13,7 @@
             padding: 20px;
             background-color: #f4f4f4;
         }
-        h1 {
+        h1, h2, h3 {
             color: #333;
         }
         .form-group {
@@ -28,6 +28,7 @@
             padding: 10px 15px;
             border: none;
             cursor: pointer;
+            margin-right: 10px;
         }
         button:hover {
             background-color: #45a049;
@@ -84,6 +85,7 @@
         <h2>Results:</h2>
         <p>Created new table with <span id="rows-count"></span> rows and <span id="columns-count"></span> columns</p>
         <button id="download-table">Download Final Table</button>
+        <button id="copy-update-script">Copy Update Script to Clipboard</button>
     </div>
 
     <div id="log-container">
@@ -91,17 +93,8 @@
         <pre id="log-content"></pre>
     </div>
 
-    <div id="results" style="display: none;">
-        <h2>Results:</h2>
-        <p>Created new table with <span id="rows-count"></span> rows and <span id="columns-count"></span> columns</p>
-        <button id="download-table">Download Final Table</button>
-        <button id="copy-update-script">Copy Update Script to Clipboard</button>
-    </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            fetchLogs();
-
             document.getElementById('upload-form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
@@ -122,6 +115,7 @@
                             document.getElementById('rows-count').textContent = response.data.rows_count;
                             document.getElementById('columns-count').textContent = response.data.columns_count;
                             document.getElementById('download-table').disabled = false;
+                            document.getElementById('copy-update-script').disabled = false;
                         }
                         fetchLogs();
                     })
@@ -169,7 +163,7 @@
                         console.error('Error generating update script:', error);
                     });
             });
-        });            
+        });
 
         function fetchLogs() {
             axios.get('/logs')
