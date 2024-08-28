@@ -46,18 +46,22 @@ def process():
         if key_column not in df_b.columns:
             raise ValueError(f"Key column '{key_column}' not found in file B")
 
-        a_keys = set(df_a[key_column])
-        b_keys = set(df_b[key_column])
+        # Merge the dataframes
+        merged_df = pd.merge(df_a, df_b, on=key_column, how='inner')
 
-        new_rows_count = sum(~df_b[key_column].isin(a_keys))
-        non_existing_rows_count = sum(~df_a[key_column].isin(b_keys))
+        # Select required columns
+        map_columns = [col for col in merged_df.columns if col.startswith('MAP_PBS_DRUG_ID_')]
+        final_df = merged_df[map_columns + ['MAPPED_SYNONYM_ID', 'PBS_CODE']]
 
-        log_message(f"New rows count: {new_rows_count}")
-        log_message(f"Non-existing rows count: {non_existing_rows_count}")
+        # Save the final dataframe to a global variable for later download
+        global final_table
+        final_table = final_df
+
+        log_message(f"Created new table with {len(final_df)} rows and {len(final_df.columns)} columns")
 
         return jsonify({
-            'new_rows_count': new_rows_count,
-            'non_existing_rows_count': non_existing_rows_count
+            'rows_count': len(final_df),
+            'columns_count': len(final_df.columns)
         })
     except Exception as e:
         log_message(f"An error occurred: {str(e)}")
@@ -67,35 +71,70 @@ def process():
 @app.route('/download', methods=['POST'])
 def download():
     try:
-        file_a = request.files['file_a']
-        file_b = request.files['file_b']
-        key_column = request.form['key_column']
-        download_type = request.form['download_type']
-
-        log_message(f"Downloading {download_type} with key column: {key_column}")
-
-        df_a = read_excel_from_memory(file_a)
-        df_b = read_excel_from_memory(file_b)
-
         output = io.BytesIO()
-
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            if download_type == 'new_rows':
-                new_rows = df_b[~df_b[key_column].isin(df_a[key_column])]
-                new_rows.to_excel(writer, index=False)
-                filename = 'new_rows.xlsx'
-            else:
-                non_existing_rows = df_a[~df_a[key_column].isin(df_b[key_column])]
-                non_existing_rows.to_excel(writer, index=False)
-                filename = 'non_existing_rows.xlsx'
-
+            final_table.to_excel(writer, index=False)
         output.seek(0)
-        log_message(f"Download complete: {filename}")
-        return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', download_name=filename)
+        log_message("Download complete: final_table.xlsx")
+        return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', download_name='final_table.xlsx')
     except Exception as e:
         log_message(f"An error occurred: {str(e)}")
         log_message(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-update-script', methods=['GET'])
+def generate_update_script():
+    global final_table
+    if final_table is None:
+        return jsonify({'error': 'No data processed yet'}), 400
+
+    script_template = """
+;________________________________________________
+;  {PBS_CODE} Mapping PBS_DRUG_ID: {MAP_PBS_DRUG_ID_} and SYNONYM_ID: {MAP_SYNONYM_ID_}
+update into pbs_ocs_mapping P_O_M
+set
+    P_O_M.beg_effective_dt_tm = cnvtdatetime(curdate, 0004)
+    ; Above line sets the activation time to today at 12:04 am, used to identify this type of update
+    , P_O_M.end_effective_dt_tm = cnvtdatetime("31-DEC-2100")
+    /*CHANGE THE ROW BELOW {MAP_PBS_DRUG_ID_}*/
+    , P_O_M.pbs_drug_id = {MAP_PBS_DRUG_ID_} ; Swap With Pbs Drug Id that maps to the synonym id
+    /*CHANGE THE ROW BELOW {MAP_SYNONYM_ID_}*/
+    , P_O_M.synonym_id = {MAP_SYNONYM_ID_} ; Swap With Synonym Id that maps to the pbs_drug_id
+    , P_O_M.drug_synonym_id = 0 ; clear multum mapping (multum mappings are not used)
+    , P_O_M.main_multum_drug_code = 0 ; clear multum mapping
+    , P_O_M.drug_identifier = "0" ; clear multum mapping
+    , P_O_M.updt_dt_tm = cnvtdatetime(curdate,curtime3)
+    , P_O_M.updt_id = reqinfo->updt_id
+    , P_O_M.updt_cnt = P_O_M.updt_cnt + 1
+where
+    ;Update the next unused row
+    P_O_M.pbs_ocs_mapping_id =
+    (select min(pbs_ocs_mapping_id) from pbs_ocs_mapping where end_effective_dt_tm < sysdate)
+    ; Only Update if the item is NOT already mapped
+    and not exists
+    (
+        select 1
+        from pbs_ocs_mapping
+        /*CHANGE THE ROW BELOW {MAP_PBS_DRUG_ID_}*/
+        where pbs_drug_id = {MAP_PBS_DRUG_ID_} ; Swap With Pbs Drug Id
+        /*CHANGE THE ROW BELOW {MAP_SYNONYM_ID_}*/
+        and synonym_id = {MAP_SYNONYM_ID_} ; Swap With Synonym Id
+        and end_effective_dt_tm > sysdate
+    )
+;________________________________________________
+"""
+
+    full_script = ""
+    for _, row in final_table.iterrows():
+        block = script_template.format(
+            PBS_CODE=row['PBS_CODE'],
+            MAP_SYNONYM_ID_=row['MAPPED_SYNONYM_ID'],
+            MAP_PBS_DRUG_ID_=row['MAP_PBS_DRUG_ID_']
+        )
+        full_script += block
+
+    return full_script
 
 @app.route('/logs', methods=['GET'])
 def get_logs():
