@@ -6,4 +6,4 @@ pip install -r requirements.txt
 
 
 To package the app use:
-pyinstaller --add-data "index.html;." --hidden-import=openpyxl --name "PBS Drug Mapping" --onefile --windowed run.py
+pyinstaller --add-data "index.html;." --hidden-import=openpyxl --name "PBS Drug Mapping" --onefile --windowed --icon=rick.ico app.py
