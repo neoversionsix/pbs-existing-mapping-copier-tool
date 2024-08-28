@@ -94,8 +94,8 @@ def generate_update_script():
 ;  {PBS_CODE} Mapping PBS_DRUG_ID: {MAP_PBS_DRUG_ID_} and SYNONYM_ID: {MAP_SYNONYM_ID_}
 update into pbs_ocs_mapping P_O_M
 set
-    P_O_M.beg_effective_dt_tm = cnvtdatetime(curdate, 0004)
-    ; Above line sets the activation time to today at 12:04 am, used to identify this type of update
+    P_O_M.beg_effective_dt_tm = cnvtdatetime(curdate, 0008)
+    ; Above line sets the activation time to today at 12:08 am, used to identify this type of update
     , P_O_M.end_effective_dt_tm = cnvtdatetime("31-DEC-2100")
     /*CHANGE THE ROW BELOW {MAP_PBS_DRUG_ID_}*/
     , P_O_M.pbs_drug_id = {MAP_PBS_DRUG_ID_} ; Swap With Pbs Drug Id that maps to the synonym id
