@@ -55,7 +55,7 @@
     <h1>PBS Drug Mapping</h1>
     <form id="upload-form" enctype="multipart/form-data">
         <div class="form-group">
-            <h3>New to Map</h3>
+            <h3>New PBS Items</h3>
             <input type="file" name="file_a" required>
             <label for="file_a">Load New Items to Map</label>
         </div>
@@ -68,7 +68,7 @@
 
         <div class="form-group">
             <h3>Matching Column</h3>
-            <input type="text" name="key_column" id="key_column" value="PBS_DRUG_CONCATENATED" required>
+            <input type="text" name="key_column" id="key_column" value="PBS_DRUG_CONCATENATED" required style="width: 30%;">
             <label for="key_column">Enter the name of the column to use when comparing rows (must be same name in both tables).</label>
         </div>
 
@@ -93,7 +93,20 @@
         <pre id="log-content"></pre>
     </div>
 
+    <button id="closeButton" style="background-color: red; color: white; padding: 10px 20px; font-size: 16px; margin-top: 20px;">TERMINATE SCRIPT</button>
+
     <script>
+        document.getElementById('closeButton').addEventListener('click', function() {
+            fetch('/shutdown', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        window.close();
+                    }
+                })
+
+            .catch(err => console.error('Error:', err));
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('upload-form').addEventListener('submit', function(e) {
                 e.preventDefault();

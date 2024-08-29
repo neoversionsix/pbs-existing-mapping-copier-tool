@@ -41,6 +41,8 @@ def process():
         df_a = read_excel_from_memory(file_a)
         df_b = read_excel_from_memory(file_b)
 
+
+        #Make sure the column the user enters for doing the mapping actually exists in both spreadsheets
         if key_column not in df_a.columns:
             raise ValueError(f"Key column '{key_column}' not found in file A")
         if key_column not in df_b.columns:
@@ -52,6 +54,9 @@ def process():
         # Select required columns
         map_columns = [col for col in merged_df.columns if col.startswith('MAP_PBS_DRUG_ID_')]
         final_df = merged_df[map_columns + ['MAPPED_SYNONYM_ID', 'PBS_CODE']]
+
+        #Remove duplicate rows
+        final_df = final_df.drop_duplicates().reset_index(drop=True)
 
         # Save the final dataframe to a global variable for later download
         global final_table
@@ -140,6 +145,11 @@ where
 def get_logs():
     return jsonify(logs)
 
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    log_message("Functionality Terminated, close this app")
+    os._exit(0)
+
 if __name__ == '__main__':
     if getattr(sys, 'frozen', False):
         application_path = os.path.dirname(sys.executable)
@@ -147,4 +157,4 @@ if __name__ == '__main__':
         application_path = os.path.dirname(os.path.abspath(__file__))
     os.chdir(application_path)
     webbrowser.open_new('http://localhost:5000/')
-    app.run(debug=False, port=5000)
+    app.run(debug=False, port=5000, use_reloader=False)
