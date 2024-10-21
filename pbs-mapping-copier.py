@@ -56,7 +56,7 @@ class Application(tk.Tk):
         self.log_text.pack()
         
         # Close Button
-        close_button = tk.Button(self, text="Terminate Script", bg="red", fg="white", command=self.terminate_script)
+        close_button = tk.Button(self, text="CLOSE", bg="red", fg="white", command=self.terminate_script)
         close_button.pack(pady=10)
     
     def log_message(self, message):
@@ -68,10 +68,17 @@ class Application(tk.Tk):
         try:
             key_column = self.key_column.get()
             self.log_message(f"Processing files with key column: {key_column}")
+
+            # Determine the correct path to 'copier.xlsx'
+            if getattr(sys, 'frozen', False):
+                application_path = os.path.dirname(sys.executable)
+            else:
+                application_path = os.path.dirname(os.path.abspath(__file__))
+            excel_file_path = os.path.join(application_path, 'copier.xlsx')
             
-            # Read the Excel file 'copier.xlsx', sheets 'need-mapping' and 'existing-mappings'
-            df_a = pd.read_excel('copier.xlsx', sheet_name='need-mapping', engine='openpyxl')
-            df_b = pd.read_excel('copier.xlsx', sheet_name='existing-mappings', engine='openpyxl')
+             # Read the Excel file 'copier.xlsx'
+            df_a = pd.read_excel(excel_file_path, sheet_name='need-mapping', engine='openpyxl')
+            df_b = pd.read_excel(excel_file_path, sheet_name='existing-mappings', engine='openpyxl')
             
             # Make sure the column the user enters for doing the mapping actually exists in both spreadsheets
             if key_column not in df_a.columns:
